@@ -62,14 +62,6 @@ public class GamePhysicsCinemachine : CinemachineExtension
         }
     }
 
-    public void UpdateCamera()
-    {
-        if (__physicsCameraComponent == null)
-            return;
-
-        __physicsCameraComponent.camera = __physicsCameraComponent.camera;
-    }
-
     protected override void Awake()
     {
         base.Awake();
@@ -80,9 +72,9 @@ public class GamePhysicsCinemachine : CinemachineExtension
 
         if (_target == null)
         {
-            var lookAt = VirtualCamera.LookAt;
+            var follow = VirtualCamera.Follow;
 
-            _target = lookAt == null ? null : lookAt.GetComponent<GameObjectEntity>();
+            _target = follow == null ? null : follow.GetComponent<GameObjectEntity>();
         }
     }
 
@@ -103,13 +95,21 @@ public class GamePhysicsCinemachine : CinemachineExtension
             return;
 #endif
 
-        if (stage == CinemachineCore.Stage.Body)
+        switch (stage)
         {
-            if (__systemGroup != null)
-                __systemGroup.Update();
+            case CinemachineCore.Stage.Body:
+                if (__systemGroup != null)
+                    __systemGroup.Update();
 
-            state.RawPosition = __physicsCameraComponent.position;
-            state.PositionCorrection = __physicsCameraComponent.displacement;
+                state.RawPosition = __physicsCameraComponent.position;
+                state.PositionCorrection = __physicsCameraComponent.displacement;
+                break;
+            case CinemachineCore.Stage.Finalize:
+                var lens = state.Lens;
+
+                __physicsCameraComponent.CreateOrUpdateCollider(lens.FarClipPlane, lens.NearClipPlane, lens.Aspect);
+
+                break;
         }
     }
 }
