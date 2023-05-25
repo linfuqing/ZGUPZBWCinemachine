@@ -82,6 +82,10 @@ public class GamePhysicsCinemachine : CinemachineExtension
     {
         if (_target != null)
             __physicsCameraComponent.target = _target.entity;
+
+        var lens = VirtualCamera.State.Lens;
+
+        __physicsCameraComponent.CreateOrUpdateCollider(lens.NearClipPlane, lens.FieldOfView, lens.Aspect);
     }
 
     protected override void PostPipelineStageCallback(
@@ -107,7 +111,7 @@ public class GamePhysicsCinemachine : CinemachineExtension
             case CinemachineCore.Stage.Finalize:
                 var lens = state.Lens;
 
-                __physicsCameraComponent.CreateOrUpdateCollider(lens.FarClipPlane, lens.NearClipPlane, lens.Aspect);
+                __physicsCameraComponent.CreateOrUpdateCollider(lens.NearClipPlane, lens.FieldOfView, lens.Aspect);
 
                 break;
         }
