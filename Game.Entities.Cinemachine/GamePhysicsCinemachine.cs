@@ -217,19 +217,25 @@ public partial class GamePhysicsCinemachineTransformSystem : SystemBase
     }
 }
 
-[BurstCompile, UpdateInGroup(typeof(GamePhysicsCinemachineSystemGroup)), UpdateAfter(typeof(GamePhysicsCinemachineTransformSystem))]
+[BurstCompile, CreateAfter(typeof(GamePhysicsWorldBuildSystem)), UpdateInGroup(typeof(GamePhysicsCinemachineSystemGroup)), UpdateAfter(typeof(GamePhysicsCinemachineTransformSystem))]
 public partial struct GamePhysicsCinemachineSystem : ISystem
 {
+    private ComponentLookup<LocalToWorld> __localToWorlds;
+
     private PhysicsCameraSystemCore __core;
     private SharedPhysicsWorld __sharedPhysicsWorld;
 
+    [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        __localToWorlds = state.GetComponentLookup<LocalToWorld>(true);
+
         __core = new PhysicsCameraSystemCore(ref state);
 
-        __sharedPhysicsWorld = state.World.GetOrCreateSystemUnmanaged<GamePhysicsWorldBuildSystem>().physicsWorld;
+        __sharedPhysicsWorld = state.WorldUnmanaged.GetExistingSystemUnmanaged<GamePhysicsWorldBuildSystem>().physicsWorld;
     }
 
+    [BurstCompile]
     public void OnDestroy(ref SystemState state)
     {
 
@@ -239,7 +245,7 @@ public partial struct GamePhysicsCinemachineSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         GamePhysicsCameraHandler handler;
-        handler.localToWorlds = state.GetComponentLookup<LocalToWorld>(true);
+        handler.localToWorlds = __localToWorlds.UpdateAsRef(ref state);
 
         ref var lookupJobManager = ref __sharedPhysicsWorld.lookupJobManager;
 
