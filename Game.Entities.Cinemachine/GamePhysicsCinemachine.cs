@@ -17,6 +17,9 @@ public struct GamePhysicsCameraHandler : IPhysicsCameraHandler
     [ReadOnly]
     public ComponentLookup<LocalToWorld> localToWorlds;
 
+    [ReadOnly]
+    public ComponentLookup<GameNodeParent> parents;
+
     public bool TryGetTargetPosition(
         in Entity entity,
         in Unity.Physics.CollisionWorld collisionWorld,
@@ -24,7 +27,17 @@ public struct GamePhysicsCameraHandler : IPhysicsCameraHandler
     {
         position = default;
 
-        int rigidbodyIndex = collisionWorld.GetRigidBodyIndex(entity);
+        Entity targetEntity;
+        if (parents.HasComponent(entity))
+        {
+            targetEntity = parents[entity].entity;
+            if (targetEntity == Entity.Null)
+                targetEntity = entity;
+        }
+        else
+            targetEntity = entity;
+
+        int rigidbodyIndex = collisionWorld.GetRigidBodyIndex(targetEntity);
         if (rigidbodyIndex == -1)
             return false;
 
@@ -32,7 +45,7 @@ public struct GamePhysicsCameraHandler : IPhysicsCameraHandler
         if (!rigidbody.Collider.IsCreated)
             return false;
 
-        position = localToWorlds.HasComponent(entity) ? localToWorlds[entity].Position : rigidbody.WorldFromBody.pos;
+        position = localToWorlds.HasComponent(rigidbody.Entity) ? localToWorlds[rigidbody.Entity].Position : rigidbody.WorldFromBody.pos;
 
         position.y += rigidbody.Collider.Value.CalculateAabb().Center.y;
 
@@ -222,6 +235,8 @@ public partial struct GamePhysicsCinemachineSystem : ISystem
 {
     private ComponentLookup<LocalToWorld> __localToWorlds;
 
+    private ComponentLookup<GameNodeParent> __parents;
+
     private PhysicsCameraSystemCore __core;
     private SharedPhysicsWorld __sharedPhysicsWorld;
 
@@ -229,6 +244,8 @@ public partial struct GamePhysicsCinemachineSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         __localToWorlds = state.GetComponentLookup<LocalToWorld>(true);
+        
+        __parents = state.GetComponentLookup<GameNodeParent>(true);
 
         __core = new PhysicsCameraSystemCore(ref state);
 
@@ -246,6 +263,7 @@ public partial struct GamePhysicsCinemachineSystem : ISystem
     {
         GamePhysicsCameraHandler handler;
         handler.localToWorlds = __localToWorlds.UpdateAsRef(ref state);
+        handler.parents = __parents.UpdateAsRef(ref state);
 
         ref var lookupJobManager = ref __sharedPhysicsWorld.lookupJobManager;
 
